@@ -67,7 +67,8 @@ class ScrapeMynavi extends Command
         });
 
       DB::table('mynavi_urls')->insert($urls);
-      // sleep(5);
+      break;
+      sleep(30);
       }
     }
 
@@ -78,8 +79,8 @@ class ScrapeMynavi extends Command
         MynaviJob::create([
           'url' => $url,
           'title' => $this->getTitle($crawler),
-          'company_name' => '',
-          'features' => '',
+          'company_name' => $this->getCompanyName($crawler),
+          'features' => $this->getFeatures($crawler),
         ]);
         break;
         sleep(30);
@@ -88,5 +89,17 @@ class ScrapeMynavi extends Command
 
     private function getTitle($crawler) {
       return $crawler->filter('.occName')->text();
+    }
+
+    private function getCompanyName($crawler) {
+      return $crawler->filter('.companyName')->text();
+    }
+
+    private function getFeatures($crawler) {
+      $features = $crawler->filter('.cassetteRecruit__attribute.cassetteRecruit__attribute-jobinfo .cassetteRecruit__attributeLabel span')->each(
+        function ($node) {
+        return $node->text();
+      });
+      return implode(',', $features);
     }
 }

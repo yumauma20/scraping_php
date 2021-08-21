@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 class ScrapeMynavi extends Command
 {
     const HOST = "https://tenshoku.mynavi.jp";
+    const FILE_PATH = "app/mynavi_jobs.csv;";
+
     /**
      * The name and signature of the console command.
      *
@@ -45,6 +47,7 @@ class ScrapeMynavi extends Command
       $this->truncateTables();
       $this->saveUrls();
       $this->saveJobs();
+      $this->exportCsv();
     }
 
     private function truncateTables() {
@@ -68,7 +71,7 @@ class ScrapeMynavi extends Command
 
       DB::table('mynavi_urls')->insert($urls);
       break;
-      sleep(30);
+      sleep(1);
       }
     }
 
@@ -83,7 +86,7 @@ class ScrapeMynavi extends Command
           'features' => $this->getFeatures($crawler),
         ]);
         break;
-        sleep(30);
+        sleep(1);
       }
     }
 
@@ -101,5 +104,24 @@ class ScrapeMynavi extends Command
         return $node->text();
       });
       return implode(',', $features);
+    }
+
+    private function exportCsv() {
+      $file = fopen(storage_path($this::FILE_PATH), 'w');
+      if(!$file) {
+        throw new \Exception('ファイルの作成に失敗しました');
+      }
+
+      if(!fputcsv($file, ['id', 'url', 'title', 'company_name', 'features'])) {
+        throw new \Exception('ヘッダの書き込みに失敗しました');
+      }
+
+      foreach (MynaviJob::all() as $job) {
+        if(!fputcsv($file, [$job->id, $job->url, $job->title, $job->company_name, $job->features])) {
+          throw new \Exception('ボディの書き込みに失敗しました');
+        }
+      }
+
+      fclose($file);
     }
 }

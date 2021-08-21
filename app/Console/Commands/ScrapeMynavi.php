@@ -2,12 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Models\MynaviUrl;
+use App\Models\MynaviJob;
 use Illuminate\Console\Command;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ScrapeMynavi extends Command
 {
+    const HOST = "https://tenshoku.mynavi.jp";
     /**
      * The name and signature of the console command.
      *
@@ -41,10 +44,12 @@ class ScrapeMynavi extends Command
     {
       $this->truncateTables();
       $this->saveUrls();
+      $this->saveJobs();
     }
 
     private function truncateTables() {
       DB::table('mynavi_urls')->truncate();
+      DB::table('mynavi_jobs')->truncate();
     }
 
     private function saveUrls() {
@@ -62,8 +67,26 @@ class ScrapeMynavi extends Command
         });
 
       DB::table('mynavi_urls')->insert($urls);
-      sleep(5);
+      // sleep(5);
       }
-      
+    }
+
+    private function saveJobs() {
+      foreach(MynaviUrl::all() as $mynaviUrl) {
+        $url = $this::HOST . $mynaviUrl->url;
+        $crawler = \Goutte::request('GET', $url);
+        MynaviJob::create([
+          'url' => $url,
+          'title' => $this->getTitle($crawler),
+          'company_name' => '',
+          'features' => '',
+        ]);
+        break;
+        sleep(30);
+      }
+    }
+
+    private function getTitle($crawler) {
+      return $crawler->filter('.occName')->text();
     }
 }

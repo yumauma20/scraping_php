@@ -39,23 +39,31 @@ class ScrapeMynavi extends Command
      */
     public function handle()
     {
-      $url = "https://tenshoku.mynavi.jp/list/pg3/";
-      $crawler = \Goutte::request('GET', $url);
-      $urls = $crawler->filter('.cassetteRecruit__copy > a')->each(function ($node) {
-
-        $href = $node->attr("href");
-        return [
-          "url" => substr($href, 0, strpos($href, "/", 1) + 1),
-          "created_at" => Carbon::now(),
-          "updated_at" => Carbon::now(),
-        ];
-
-      });
-
-      DB::table('mynavi_urls')->insert($urls);
+      $this->truncateTables();
+      $this->saveUrls();
     }
 
-  /*   private function saveUrls() {
+    private function truncateTables() {
+      DB::table('mynavi_urls')->truncate();
+    }
 
-    } */
+    private function saveUrls() {
+      foreach (range(1,2) as $num) {
+        $url = "https://tenshoku.mynavi.jp/list/pg" . $num . "/";
+        $crawler = \Goutte::request('GET', $url);
+        $urls = $crawler->filter('.cassetteRecruit__copy > a')->each(function ($node) {
+
+        $href = $node->attr("href");
+          return [
+            "url" => substr($href, 0, strpos($href, "/", 1) + 1),
+            "created_at" => Carbon::now(),
+            "updated_at" => Carbon::now(),
+          ];
+        });
+
+      DB::table('mynavi_urls')->insert($urls);
+      sleep(5);
+      }
+      
+    }
 }
